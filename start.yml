@@ -1,0 +1,89 @@
+---
+- name: Start production services
+  hosts: all
+  become: true
+  vars:
+    env_file: "{{ project_dir }}/.env"
+
+  tasks:
+
+    # 🔹 Debug project directory
+    - name: Show project directory
+      debug:
+        msg: "Starting services in project directory: {{ project_dir }}"
+
+    # 🔹 Check if .env exists
+    - name: Check if .env file exists
+      stat:
+        path: "{{ env_file }}"
+      register: env_file_stat
+
+    - name: Show .env file status
+      debug:
+        var: env_file_stat
+
+    # 🔹 Git pull via SSH-safe non-interactive
+    - name: Git pull via SSH (non-interactive)
+      ansible.builtin.shell: git pull origin/main
+      args:
+        chdir: "{{ project_dir }}"
+        executable: /bin/bash
+      environment:
+        GIT_SSH_COMMAND: "ssh -i /home/ec2-user/.ssh/id_rsa_git -o StrictHostKeyChecking=no"
+      register: git_result
+      ignore_errors: yes
+
+    - name: Show git pull result
+      debug:
+        var: git_result
+
+    # 🔹 Source environment
+    - name: Source environment file
+      ansible.builtin.shell: |
+        set -a
+        source {{ env_file }}
+        set +a
+      args:
+        chdir: "{{ project_dir }}"
+      register: env_result
+      ignore_errors: yes
+
+    - name: Show environment sourcing result
+      debug:
+        var: env_result
+
+    # 🔹 Docker compose pull
+    - name: Docker compose pull
+      ansible.builtin.shell: doppler run -- docker-compose pull
+      args:
+        chdir: "{{ project_dir }}"
+      register: pull_result
+      ignore_errors: yes
+
+    - name: Show docker-compose pull result
+      debug:
+        var: pull_result
+
+    # 🔹 Docker compose up
+    - name: Docker compose up
+      ansible.builtin.shell: doppler run -- docker-compose up -d --force-recreate --remove-orphans
+      args:
+        chdir: "{{ project_dir }}"
+      register: up_result
+      ignore_errors: yes
+
+    - name: Show docker-compose up result
+      debug:
+        var: up_result
+
+    # 🔹 Docker image prune
+    - name: Docker image prune
+      ansible.builtin.shell: docker image prune -f
+      args:
+        chdir: "{{ project_dir }}"
+      register: prune_result
+      ignore_errors: yes
+
+    - name: Show docker image prune result
+      debug:
+        var: prune_result
