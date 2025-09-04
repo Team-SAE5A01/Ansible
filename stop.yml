@@ -7,21 +7,6 @@
 
   tasks:
 
-    # 🔹 Debug project directory
-    - name: Show project directory
-      debug:
-        msg: "Stopping services in project directory: {{ project_dir }}"
-
-    # 🔹 Check if .env exists
-    - name: Check if .env file exists
-      stat:
-        path: "{{ env_file }}"
-      register: env_file_stat
-
-    - name: Show .env file status
-      debug:
-        var: env_file_stat
-
     # 🔹 Stop services
     - name: Stop docker-compose services
       ansible.builtin.shell: |
